@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, X, Send, ChefHat, Cpu } from 'lucide-react';
+import { MessageCircle, X, Send, ChefHat } from 'lucide-react';
 import type { RecipeWithIngredients } from '@/lib/supabase';
 import { generateAIResponse, createMessage, type ChatMessage } from '@/lib/chatbot';
-import { MODELS, DEFAULT_MODEL_ID } from '@/lib/models';
 
 type ChatbotProps = {
   recipes: RecipeWithIngredients[];
@@ -14,7 +13,6 @@ export function Chatbot({ recipes, onSelectRecipe }: ChatbotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const welcomeMessage = useCallback(() => {
@@ -47,7 +45,7 @@ export function Chatbot({ recipes, onSelectRecipe }: ChatbotProps) {
     setInput('');
     setIsTyping(true);
 
-    generateAIResponse(text, recipes, selectedModel)
+    generateAIResponse(text, recipes)
       .then((response) => {
         const botMsg = createMessage('bot', response.text, response.recipeId);
         setMessages((prev) => [...prev, botMsg]);
@@ -57,7 +55,7 @@ export function Chatbot({ recipes, onSelectRecipe }: ChatbotProps) {
         setMessages((prev) => [...prev, botMsg]);
       })
       .finally(() => setIsTyping(false));
-  }, [input, recipes, selectedModel]);
+  }, [input, recipes]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -145,22 +143,6 @@ export function Chatbot({ recipes, onSelectRecipe }: ChatbotProps) {
 
           {/* Input */}
           <div className="border-t border-stone-100 bg-white p-3">
-            {/* Selector de modelo de IA */}
-            <div className="mb-2 flex items-center gap-2">
-              <Cpu className="h-3.5 w-3.5 flex-shrink-0 text-stone-400" />
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="flex-1 cursor-pointer rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-xs font-medium text-stone-600 outline-none transition-all hover:border-stone-300 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
-              >
-                {MODELS.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className="flex items-center gap-2">
               <input
                 type="text"

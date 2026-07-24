@@ -72,6 +72,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Modelo único configurado en el backend
+    const MODEL = "google/gemini-2.0-flash-001";
+
     // Construir el prompt del sistema con el contexto inyectado
     const systemPrompt = SYSTEM_PROMPT
       .replace("{{LOCAL_SEARCH_RESULTS}}", localSearchResults || "No se encontraron recetas locales que coincidan.")
@@ -86,7 +89,7 @@ Deno.serve(async (req: Request) => {
         "X-Title": "Recetario Inteligente",
       },
       body: JSON.stringify({
-        model: model || "google/gemini-2.0-flash-001",
+        model: MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: message },

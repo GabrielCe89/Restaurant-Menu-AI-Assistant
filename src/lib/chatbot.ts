@@ -1,6 +1,6 @@
 import type { RecipeWithIngredients } from '@/lib/supabase';
 import { difficultyLabel } from '@/lib/matcher';
-import { getModelById } from '@/lib/models';
+import { OPENROUTER_MODEL } from '@/lib/models';
 import { supabase } from '@/lib/supabase';
 
 export type ChatMessage = {
@@ -393,10 +393,7 @@ export type AIResponse = {
 export async function generateAIResponse(
   input: string,
   recipes: RecipeWithIngredients[],
-  modelId: string,
 ): Promise<AIResponse> {
-  const model = getModelById(modelId);
-
   // 1) Búsqueda local: encontrar recetas relevantes del catálogo
   const localMatches = searchLocalRecipes(input, recipes);
   const localSearchResults = formatLocalSearchResults(localMatches);
@@ -408,7 +405,7 @@ export async function generateAIResponse(
   const { data, error } = await supabase.functions.invoke('chat', {
     body: {
       message: input,
-      model: model.openrouterModel,
+      model: OPENROUTER_MODEL,
       recipesContext,
       localSearchResults,
     },
