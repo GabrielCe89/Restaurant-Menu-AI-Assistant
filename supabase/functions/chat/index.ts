@@ -8,25 +8,37 @@ const corsHeaders = {
 
 // Prompt del sistema del asistente de recetas
 const SYSTEM_PROMPT = `Eres el asistente del "Recetario Inteligente", una aplicación web con un catálogo de recetas de cocina.
-Tu función es ayudar al usuario a:
-- Buscar recetas por nombre o ingrediente
-- Explicar los ingredientes o pasos de una receta
-- Sugerir recetas rápidas o fáciles
-- Responder preguntas generales sobre cocina
 
-Contexto del catálogo de recetas disponible:
+Tu función es ayudar al usuario con todo lo relacionado a cocina y recetas:
+- Buscar recetas existentes por nombre o ingrediente
+- Explicar los ingredientes o pasos de una receta del catálogo
+- Sugerir recetas rápidas o fáciles
+- CREAR recetas nuevas y originales cuando el usuario lo pida o cuando no haya coincidencias exactas en el catálogo
+- Responder preguntas generales sobre cocina, técnicas, nutrición y combinaciones de ingredientes
+
+A continuación se incluye:
+1. RESULTADOS DE BÚSQUEDA LOCAL: recetas del catálogo que coinciden con la consulta del usuario (puede estar vacío).
+2. CATÁLOGO COMPLETO: todas las recetas disponibles en la base de datos.
+
+=== RESULTADOS DE BÚSQUEDA LOCAL ===
+{{LOCAL_SEARCH_RESULTS}}
+
+=== CATÁLOGO COMPLETO ===
 {{RECIPES_CONTEXT}}
 
 Instrucciones:
-- Responde SIEMPRE en español, de forma clara y amable.
-- Si el usuario pregunta por una receta específica, usa la información del catálogo.
-- Si la pregunta no está relacionada con recetas o cocina, redirige amablemente al tema.
-- Sé conciso pero completo. Usa listas cuando sea útil.`;
+- Responde SIEMPRE en español, de forma clara, amable y bien estructurada.
+- Si el usuario pregunta por una receta que EXISTE en el catálogo, usa esa información.
+- Si el usuario te da ingredientes y te pide crear una receta, INVENTA una receta nueva y completa con título, ingredientes (con cantidades), pasos numerados, tiempo estimado, porciones y dificultad. No importa si no existe en el catálogo.
+- Si no hay resultados locales pero el usuario pide recetas con ciertos ingredientes, primero menciona si hay algo parecido en el catálogo y luego crea una receta nueva si es pertinente.
+- Si la pregunta no está relacionada con cocina o recetas, redirige amablemente al tema.
+- Sé conciso pero completo. Usa listas y pasos numerados cuando sea útil.`;
 
 interface ChatRequest {
   message: string;
   model: string;
   recipesContext: string;
+  localSearchResults: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -43,7 +55,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = (await req.json()) as ChatRequest;
-    const { message, model, recipesContext } = body;
+    const { message, model, recipesContext, localSearchResults } = body;
 
     if (!message || typeof message !== "string") {
       return new Response(JSON.stringify({ error: "Falta el mensaje" }), {
@@ -60,11 +72,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Construir el prompt del sistema con el contexto de recetas inyectado
-    const systemPrompt = SYSTEM_PROMPT.replace(
-      "{{RECIPES_CONTEXT}}",
-      recipesContext || "No hay recetas disponibles.",
-    );
+    // Construir el prompt del sistema con el contexto inyectado
+    const systemPrompt = SYSTEM_PROMPT
+      .replace("{{LOCAL_SEARCH_RESULTS}}", localSearchResults || "No se encontraron recetas locales que coincidan.")
+      .replace("{{RECIPES_CONTEXT}}", recipesContext || "No hay recetas disponibles.");
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",

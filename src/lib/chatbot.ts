@@ -321,6 +321,69 @@ function buildRecipesContext(recipes: RecipeWithIngredients[]): string {
     .join('\n\n---\n\n');
 }
 
+// Búsqueda local: encuentra recetas relevantes para dar contexto a la IA.
+// No bloquea ni sustituye la respuesta del modelo; solo aporta información.
+function searchLocalRecipes(
+  input: string,
+  recipes: RecipeWithIngredients[],
+): RecipeWithIngredients[] {
+  const q = normalize(input);
+  if (!q) return [];
+
+  const stopwords = new Set([
+    'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del',
+    'con', 'sin', 'que', 'tien', 'tengo', 'para', 'por', 'como', 'hacer',
+    'crear', 'receta', 'recetas', 'algo', 'rapida', 'rapido', 'facil',
+    'dificil', 'alta', 'baja', 'calorias', 'proteinas', 'grasa', 'carbohidratos',
+    'y', 'o', 'en', 'al', 'se', 'me', 'mi', 'es', 'son', 'hay', 'ver',
+    'todas', 'lista', 'catalogo', 'quisiera', 'quiero', 'necesito',
+    'buenas', 'buenos', 'dias', 'tardes', 'noches', 'hola', 'ayuda',
+  ]);
+
+  const words = q
+    .split(/\s+/)
+    .map((w) => w.replace(/[?¿!.:,]/g, '').trim())
+    .filter((w) => w.length >= 3 && !stopwords.has(w));
+
+  const scored = recipes.map((r) => {
+    let score = 0;
+    const title = normalize(r.title);
+    const desc = normalize(r.description ?? '');
+    const ingNames = (r.recipe_ingredients ?? []).map((ri) =>
+      normalize(ri.ingredient?.name ?? ''),
+    );
+
+    for (const w of words) {
+      if (title.includes(w)) score += 3;
+      if (desc.includes(w)) score += 1;
+      for (const ingName of ingNames) {
+        if (ingName.includes(w) || w.includes(ingName)) score += 2;
+      }
+    }
+    return { recipe: r, score };
+  });
+
+  return scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map((s) => s.recipe);
+}
+
+function formatLocalSearchResults(recipes: RecipeWithIngredients[]): string {
+  if (recipes.length === 0) {
+    return 'No se encontraron recetas locales que coincidan con la consulta.';
+  }
+  return recipes
+    .map((r) => {
+      const ings = (r.recipe_ingredients ?? [])
+        .map((ri) => ri.ingredient?.name ?? '?')
+        .join(', ');
+      return `- ${r.title}: ${r.description ?? ''} | Ingredientes: ${ings} | ${r.prep_time_minutes ?? '?'} min | ${r.servings} porciones | ${difficultyLabel(r.difficulty)}`;
+    })
+    .join('\n');
+}
+
 export type AIResponse = {
   text: string;
   recipeId?: string;
@@ -333,13 +396,21 @@ export async function generateAIResponse(
   modelId: string,
 ): Promise<AIResponse> {
   const model = getModelById(modelId);
+
+  // 1) Búsqueda local: encontrar recetas relevantes del catálogo
+  const localMatches = searchLocalRecipes(input, recipes);
+  const localSearchResults = formatLocalSearchResults(localMatches);
+
+  // 2) Contexto completo del catálogo
   const recipesContext = buildRecipesContext(recipes);
 
+  // 3) Enviar siempre a la IA: contexto local + catálogo + pregunta del usuario
   const { data, error } = await supabase.functions.invoke('chat', {
     body: {
       message: input,
       model: model.openrouterModel,
       recipesContext,
+      localSearchResults,
     },
   });
 
@@ -349,9 +420,8 @@ export async function generateAIResponse(
     return { ...fallback, usedAI: false };
   }
 
-  // Intentar detectar si la respuesta menciona una receta para enlazarla
+  // Intentar detectar si la respuesta menciona una receta del catálogo para enlazarla
   const mentionedRecipe = recipes.find((r) =>
-    r.title.toLowerCase().includes(data.reply.toLowerCase().slice(0, 20)) ||
     data.reply.toLowerCase().includes(r.title.toLowerCase()),
   );
 
