@@ -6,4 +6,4 @@
 // simplificar la experiencia del usuario final.
 // ============================================================
 
-export const OPENROUTER_MODEL: string = 'google/gemini-2.0-flash-001';
+export const OPENROUTER_MODEL: string = 'google/gemini-2.5-flash';

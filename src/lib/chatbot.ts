@@ -394,6 +394,22 @@ export async function generateAIResponse(
   input: string,
   recipes: RecipeWithIngredients[],
 ): Promise<AIResponse> {
+  // Comando "ayuda": responder localmente sin llamar a la IA
+  const q = normalize(input);
+  if (q === 'ayuda' || q === 'help') {
+    const helpText =
+      'Esto es lo que puedo hacer:\n\n' +
+      '1. "¿Qué recetas tienen pollo?" — busca por ingrediente\n' +
+      '2. "¿Cómo se hace la tortilla?" — pasos de una receta\n' +
+      '3. "¿Qué lleva el arroz con pollo?" — ingredientes\n' +
+      '4. "¿Algo rápido?" — recetas con poco tiempo\n' +
+      '5. "¿Algo fácil?" — recetas sencillas\n' +
+      '6. "Muéstrame todas las recetas" — catálogo completo\n' +
+      '7. "Tengo pollo, huevos y avena. Crea una receta alta en proteínas" — la IA inventa una receta nueva\n' +
+      '\nPuedes preguntarme lo que quieras sobre recetas o pedirme que cree una nueva.';
+    return { text: helpText, usedAI: false };
+  }
+
   // 1) Búsqueda local: encontrar recetas relevantes del catálogo
   const localMatches = searchLocalRecipes(input, recipes);
   const localSearchResults = formatLocalSearchResults(localMatches);

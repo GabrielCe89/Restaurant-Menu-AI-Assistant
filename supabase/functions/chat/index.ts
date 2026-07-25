@@ -72,8 +72,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Modelo único configurado en el backend
-    const MODEL = "google/gemini-2.0-flash-001";
+    // Modelo único configurado en el backend.
+    const MODEL = "google/gemini-2.5-flash";
 
     // Construir el prompt del sistema con el contexto inyectado
     const systemPrompt = SYSTEM_PROMPT
