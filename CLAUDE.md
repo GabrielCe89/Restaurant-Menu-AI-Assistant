@@ -141,3 +141,61 @@ Entregable 2, abrir la URL del preview en el navegador y:
 1. Mostrar el **catálogo** con búsqueda.
 2. Ir a **¿Qué cocino hoy?**, seleccionar 3-4 ingredientes y ver el ranking.
 3. Abrir el **detalle** de una receta para mostrar ingredientes y pasos.
+
+## Superpowers — Soporte para desarrollo asistido por IA
+
+Este proyecto integra [Superpowers](https://github.com/obra/superpowers) como
+una capa adicional de soporte para asistentes de IA durante el desarrollo.
+Superpowers **no modifica el frontend, el backend ni la arquitectura** del
+proyecto; funciona exclusivamente como documentación estructurada que los
+agentes de IA (Claude Code, Codex, OpenCode) pueden descubrir y usar.
+
+### Archivos agregados
+
+| Archivo | Propósito |
+|---|---|
+| `AGENTS.md` | Guía base para cualquier asistente de IA que trabaje en el proyecto: setup, convenciones, estilo de código, seguridad. |
+| `skills/buscar-recetas-por-ingredientes/SKILL.md` | Skill para buscar recetas del catálogo por ingredientes. |
+| `skills/recomendar-recetas-segun-preferencias/SKILL.md` | Skill para recomendar recetas según preferencias o restricciones alimentarias. |
+| `skills/explicar-receta-paso-a-paso/SKILL.md` | Skill para explicar una receta del catálogo paso a paso. |
+
+### Cómo usar las skills
+
+Las skills se activan automáticamente cuando un asistente de IA detecta que
+la consulta del usuario coincide con la descripción de la skill (campo
+`description` en el frontmatter YAML de cada `SKILL.md`).
+
+**Ejemplos de activación:**
+
+| Consulta del usuario | Skill activada |
+|---|---|
+| "Tengo pollo, arroz y tomate. ¿Qué recetas puedo hacer?" | `buscar-recetas-por-ingredientes` |
+| "¿Tienes algo vegetariano y rápido?" | `recomendar-recetas-segun-preferencias` |
+| "¿Cómo se hace la lasaña?" | `explicar-receta-paso-a-paso` |
+
+### Agente de dominio
+
+El agente especializado en este proyecto entiende el dominio de recetas de
+cocina y puede combinar las tres skills para responder consultas complejas.
+Está documentado en `AGENTS.md` bajo la sección "Domain agent".
+
+### Restricciones de la integración
+
+- Las skills son **documentación de referencia**: no ejecutan código ni
+  modifican la aplicación.
+- No agregan dependencias npm ni cambian el build.
+- No afectan el funcionamiento del chatbot ni del catálogo.
+- Son compatibles con Claude Code, Codex y OpenCode mediante el formato
+  estándar `SKILL.md` con frontmatter YAML.
+
+### Para otro desarrollador
+
+Si otro desarrollador quiere usar estas capacidades:
+
+1. **Con Claude Code**: las skills en `skills/` se detectan automáticamente
+   si el proyecto tiene el plugin de Superpowers instalado.
+2. **Con Codex u OpenCode**: copiar o enlazar la carpeta `skills/` al
+   directorio de skills del runtime correspondiente
+   (ej. `~/.agents/skills/` para Codex).
+3. **Sin Superpowers**: las skills siguen siendo útiles como documentación
+   de referencia para cualquier asistente de IA que lea el repositorio.
