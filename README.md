@@ -19,6 +19,32 @@ sugerencias o recetas nuevas generadas por IA.
 - Un proyecto de Supabase (gratuito en https://supabase.com)
 - Una clave de API de OpenRouter (gratuita en https://openrouter.ai)
 
+## Variables de entorno
+
+El proyecto usa dos tipos de credenciales. Las del frontend son públicas por
+diseño ( protegidas por RLS); las del backend nunca se exponen en el cliente.
+
+### Frontend (archivo `.env`)
+
+Copia `.env.example` a `.env` y completa estos valores:
+
+| Variable | Dónde obtenerla | Descripción |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Supabase Dashboard → Project Settings → API → Project URL | URL del proyecto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API → anon public key | Clave pública, segura para el frontend (RLS la protege) |
+
+### Backend (secreto de la Edge Function)
+
+Esta clave **no** va en el archivo `.env`. Se configura directamente en Supabase:
+
+| Variable | Dónde configurarla | Descripción |
+|---|---|---|
+| `OPENROUTER_API_KEY` | Supabase Dashboard → Edge Functions → Secrets | Clave de OpenRouter; la Edge Function la lee en el servidor con `Deno.env.get()`. Nunca se expone en el frontend. |
+
+> **Seguridad**: la clave de OpenRouter vive únicamente en los secretos de la
+> Edge Function. El frontend nunca la ve ni la envía; solo llama a la Edge
+> Function, y esta la usa server-side para comunicarse con OpenRouter.
+
 ## Instalación y ejecución en Windows
 
 ### 1. Instalar Node.js
